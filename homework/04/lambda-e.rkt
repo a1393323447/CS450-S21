@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../e-ast.rkt")
+(require "e-ast.rkt")
 
 ; return a e:value/lambda (just a value)
 (define (e:eval-exp e env)
@@ -26,8 +26,8 @@
     [(e:apply? f)
      (define res (e:eval-exp f env))
      (if (e:closure? res) (e:eval-closure res args env)
-         (error "e:eval-apply: Expected a closure"))]
-    [else error "e:eval-apply: Unexpected expr type"]))
+         (error (format "e:eval-apply: Expected a closure but got:\n ~a\n" res)))]
+    [else error (format "e:eval-apply: Unexpected expr: ~a\n" f)]))
 
 (define (e:eval-closure f args env)
   (define clos-env (e:closure-env f))

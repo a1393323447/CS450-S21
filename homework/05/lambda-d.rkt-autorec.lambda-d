@@ -1,0 +1,103 @@
+#lang racket
+
+(require "d-ast.rkt")
+(require "env.rkt")
+
+; (-> heap? handle? expr? eff?)
+(define (d:eval-exp hp env exp)
+  (cond
+    [(d:val? exp) (eff hp exp)]
+    [(d:variable? exp) (eff hp exp)]
+    [(d:lambda? exp) (eff hp (d:closure env exp))]
+    [(d:define? exp)
+     ; 1. get the define name and expr
+     (define var (d:define-name exp))
+     (define expr (d:define-expr exp))
+     ; 2. eval expr with cur hp and env
+     ; and get the new hp and val(the res of expr)
+     (define hp-val (d:eval-exp hp env expr))
+     ; name the new heap as res-hp
+     ; note that the res-hp may contains some new definitions
+     ; which are introduced by the expr
+     (define res-hp (eff-state hp-val))
+     (define val (eff-res hp-val))
+     ; 3. put the definition to cur env in res-hp and get the new-hp
+     (define new-hp (environ-put res-hp env var val))
+     ; 4. finally we return the effect. the return val of a define is void
+     (eff new-hp (d:void))]
+    [(d:apply? exp) (d:eval-apply hp env exp)]
+    [else (error (format "d:eval-exp: Unexpcted exp: ~a\n" exp))]))
+
+;;------------------ Builtin ------------------------
+(define (insert-pair pair table)
+    (define pa (car pair))
+    (define pb (cdr pair))
+    (hash-set table pa pb))
+
+(define (insert-pairs table pairs)
+    (foldr insert-pair table pairs))
+
+(define (d:builtin:+ args env)
+  (d:eager-eval + args env))
+
+(define (d:builtin:- args env)
+  (d:eager-eval - args env))
+
+(define (d:builtin:* args env)
+  (d:eager-eval * args env))
+
+(define (d:builtin:/ args env)
+  (d:eager-eval / args env))
+
+(define (d:builtin:not args env)
+  (d:eager-eval not args env))
+
+(define (d:builtin:and args env)
+  (define proc (λ (arg) (d:eval-to-val arg env)))
+  (andmap proc args))
+
+(define (d:builtin:or args env)
+  (define proc (λ (arg) (d:eval-to-val arg env)))
+  (ormap proc args))
+
+(define (d:builtin:void _args _env)
+  (void))
+
+(define (d:builtin-env)
+  (insert-pairs (hash) d:builtins))
+
+(define d:builtins
+  (list (cons '+ d:builtin:+)
+        (cons '- d:builtin:-)
+        (cons '* d:builtin:*)
+        (cons '/ d:builtin:/)
+        (cons 'not d:builtin:not)
+        (cons 'or d:builtin:or)
+        (cons 'and d:builtin:and)
+        (cons 'void d:builtin:void)))
+
+;;-----------------------------------------------------
+
+;;----------------- Untility ------------------------
+(define (match-any v vals)
+  (ormap (curry equal? v) vals))
+
+(define (zip l r)
+  (map cons l r))
+
+(define (d:eval-all exps env)
+  (define proc (λ (exp) (d:eval-exp exp env)))
+  (map proc exps))
+
+(define (d:eval-to-val exp env)
+  (d:value-val (d:eval-exp exp env)))
+
+(define (d:eval-all-to-val exps env)
+  (define proc (λ (exp) (d:eval-to-val exp env)))
+  (map proc exps))
+
+(define (d:eager-eval f args hp env)
+  (define vals (d:eval-all-to-val args hp env))
+  (apply f vals))
+
+;;---------------------------------------------------

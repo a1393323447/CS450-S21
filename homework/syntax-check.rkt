@@ -27,13 +27,14 @@
 ; if a datum is syntactically valid then return true
 (define (lambda? datum)
   (match datum
-    [(list 'lambda params _body) (symbols? params)]
-    [(list 'λ params _body) (symbols? params)]
+    [(list 'lambda params _body ...) (symbols? params)]
+    [(list 'λ params _body ...) (symbols? params)]
     [_ #f]))
 ; Example
 (check-true (lambda? '(lambda () 1)))
 (check-true (lambda? '(lambda (x) x)))
 (check-true (lambda? '(λ (x y) (+ x z))))
+(check-true (lambda? '(λ () (define f 10) f)))
 (check-false (lambda? '(λ (x 1) 1)))
 ;;-------------------------------------------------
 
@@ -150,7 +151,7 @@
 ; return a boolean whether or not the datum is a function define
 (define (define-func? datum)
   (match datum
-    [(list 'define name-params _body) (symbols? name-params)]
+    [(list 'define name-params _body ...) (symbols? name-params)]
     [_ #f]))
 ; Example
 (check-true (define-func? '(define (f) (+ x y))))

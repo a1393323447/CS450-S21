@@ -1,6 +1,6 @@
 #lang racket
 
-(require "../s-ast.rkt")
+(require "s-ast.rkt")
 
 (define (s:eval-exp e)
   (cond
@@ -118,7 +118,7 @@
 
 ;;------------------- Unit Tests ----------------------
 (require rackunit)
-(require "../02/parse-ast.rkt")
+(require "parse-ast.rkt")
 
 (define (eval datum)
   (s:eval-exp (parse-ast datum)))

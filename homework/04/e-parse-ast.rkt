@@ -2,7 +2,7 @@
 
 (require rackunit)
 (require "../syntax-check.rkt")
-(require "../e-ast.rkt")
+(require "e-ast.rkt")
 
 (provide parse-ast)
 
@@ -17,7 +17,7 @@
     [(define-basic? datum) (parse-define-basic datum)]
     [(define-func? datum) (parse-define-func datum)]
     [(apply? datum) (parse-apply datum)]
-    [else (error "unexpected datum")]))
+    [else (error (format "parse-ast: Unexpected datum: ~a\n" datum))]))
 
 (define (parse-lambda datum)
   (define-values (params body) (match datum

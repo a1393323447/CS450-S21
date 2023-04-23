@@ -75,7 +75,7 @@ $$
 $$
 e ::= v | x | (e_1\ e_2) | \lambda x.e \\
 
-v ::= n | (E,\lambda x.e) \\
+v ::= n | \lang E,\lambda x.e \rang \\
 $$
 
 ## Semantics
@@ -88,12 +88,12 @@ v \Downarrow_E v (E-val) \\
 % rule for var
 v \Downarrow_E E(x) (E-var) \\
 
-\lambda x.e \Downarrow_E (E, \lambda x.e) (E-clos) \\
+\lambda x.e \Downarrow_E \lang E, \lambda x.e \rang (E-clos) \\
 
 \\
 % rule for application
 \frac{
-   e_f \Downarrow_E (E_b, \lambda x.e_b) \hspace{1cm}
+   e_f \Downarrow_E \lang E_b, \lambda x.e_b \rang \hspace{1cm}
    e_a \Downarrow_E v_a \hspace{1cm}
    e_b \Downarrow_{E_b[x \mapsto v_a]} v_b
 }
@@ -104,10 +104,139 @@ $$
 
 
 
-$$
-\mapsto \\
+# $\lambda_F$
 
-\Downarrow \\
+## Syntax
 
-\frac{a}{b} \\
 $$
+v ::= n | \lang E,\lambda x.t \rang | void \\
+
+e ::= v | x | (e_1\ e_2) | \lambda x.t \\
+
+t ::= e | t;t | (define\ x\ e) \\
+$$
+
+
+
+### Semantics
+
+$$
+\\
+% rule for val
+v \Downarrow_E v \ (E-val) \\
+
+% rule for var
+v \Downarrow_E E(x) \ (E-var) \\
+
+\lambda x.t \Downarrow_E \lang E, \lambda x.t \rang \ (E-lam) \\
+
+\frac {
+  e \Downarrow_E v
+}{
+  e \Downarrow_E \lang E, v \rang
+}\ (E-exp) \\
+
+% rule for application
+\frac{
+   e_f \Downarrow_E \lang E_b, \lambda x.t_b \rang \hspace{1cm}
+   e_a \Downarrow_E v_a \hspace{1cm}
+   e_b \Downarrow_{E_b[x \mapsto v_a]} v_b
+}
+{
+   (e_f \ e_a) \Downarrow_E v_b
+}(E-app) \\
+
+\frac {
+  e \Downarrow_E v
+}{
+  (define\ x\ e) \Downarrow_E \lang E[x \mapsto v], void \rang
+}\ (E-def) \\
+
+\frac {
+  t1 \Downarrow_{E_1} \lang E_2, v_1 \rang \hspace{1cm}
+  t2 \Downarrow_{E_2} \lang E_3, v_2 \rang
+}{
+  t1;t2 \Downarrow_{E_1} \lang E_3, v_2 \rang
+}\ (E-seq) \\
+$$
+
+# $\lambda_D$
+
+## Syntax
+
+$$
+v ::= n | \lang E,\lambda x.t \rang | void \\
+
+e ::= v | x | (e_1\ e_2) | \lambda x.t \\
+
+t ::= e | t;t | (define\ x\ e) \\
+$$
+
+
+
+## Semantics
+
+$$
+\\
+% rule for val
+v \Downarrow_E v \ (E-val) \\
+
+% rule for var
+x \Downarrow_E E(x) \ (E-var) \\
+
+\lambda x.t \Downarrow_E \lang E, \lambda x.t \rang \ (E-lam) \\
+
+\frac {
+  e \Downarrow_E v
+}{
+  e \Downarrow_E \lang E, v \rang
+}\ (E-exp) \\
+
+% rule for application
+\frac{
+   e_f \Downarrow_{E} \lang E_f, \lambda x.t_b \rang \ \triangleright \ 
+   e_a \Downarrow_E v_a \ \triangleright \ 
+   E_b \leftarrow E_f + [x := v_a] \ \triangleright \ 
+   t_b \Downarrow_{E_b} v_b
+}
+{
+   (e_f \ e_a) \Downarrow_E v_b
+}(E-app) \\
+
+\frac {
+  e \Downarrow_E v \hspace{0.5cm} \triangleright \hspace{0.5cm} 
+  E \leftarrow [x := v]
+}{
+  (define\ x\ e) \Downarrow_E void
+}\ (E-def) \\
+
+\frac {
+  t1 \Downarrow_{E} v_1 \hspace{0.5cm} \triangleright \hspace{0.5cm}
+  t2 \Downarrow_{E}  v_2
+}{
+  t1;t2 \Downarrow_{E} v_2
+}\ (E-seq) \\
+$$
+
+### Put
+
+Take a ref to an env $E$ and mutate its contents, by adding a new binding.
+$$
+E \leftarrow [x := v]
+$$
+
+### Push
+
+Create a new env ref by $E$ which copies the elements of $E'$ and also adds a new binding.
+$$
+E \leftarrow E' + [x := v]
+$$
+
+
+(define hp-env (d:builtin-env))
+
+(define hp (eff-state hp-env))
+
+(define env (eff-res hp-env))
+
+(d:eval-all (list (d:define 'f (d:value 10)) (d:variable 'f)) env hp)
