@@ -1,5 +1,41 @@
 #lang racket
 
+(require rackunit)
+
+(struct return-ok (val) #:transparent)
+(struct return-err (val) #:transparent)
+
+(define (handle res cont)
+  (cond
+    [(return-err? res) res]
+    [else (cont (return-ok-val res))]))
+
+(define (pure-v v) (return-ok v))
+
+(define (safe-div x y)
+  (cond [(= 0 y) (return-err 'division-by-zero)]
+          [else (return-ok (/ x y))]))
+
+(define-syntax try
+  (syntax-rules (<-)
+    ; Only one monadic-op, return it
+    [(_ mexp) mexp]
+    ; A binding operation
+    [(_ var <- mexp rest ...) (handle mexp (lambda (var) (try rest ...)))]
+    ; No binding operator, just ignore the return value
+    [(_ mexp rest ...)        (handle mexp (lambda (_) (try rest ...)))]))
+
+
+(define some-err
+  (try
+   x <- (safe-div 1 2)
+   y <- (safe-div 6 3)
+   z <- (pure-v 2)
+   (safe-div x (- y z))))
+
+(check-equal? some-err (return-err 'division-by-zero))
+
+;;---------------------------------- CPS ------------------------------------
 ; In error monad, we have two continuation:
 ; - ok: we pass result x it to ok continue running
 ; - err: we pass result x it to err to handle the error
